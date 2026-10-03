@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>EduGenie - Learning Assistant</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <header>
+            <h1>EduGenie</h1>
+            <p>Google Gemini Powered Learning Assistant</p>
+        </header>
+
+        <main class="card">
+
+            <label for="task">Choose a learning task:</label>
+
+            <select id="task">
+                <option value="qa">Ask a Question</option>
+                <option value="explain">Explain a Topic</option>
+                <option value="quiz">Generate Quiz</option>
+                <option value="summarize">Summarize Text</option>
+                <option value="learn">Learning Path</option>
+            </select>
+
+
+            <label for="level">Choose your level:</label>
+
+            <select id="level">
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+            </select>
+
+
+            <label for="inputText" id="inputLabel">
+                Enter your question:
+            </label>
+
+            <textarea
+                id="inputText"
+                rows="8"
+                placeholder="Type your question here..."
+            ></textarea>
+
+
+            <button id="submitBtn">
+                Generate
+            </button>
+
+
+            <div id="loading" class="loading hidden">
+                Please wait...
+            </div>
+
+
+            <div id="result" class="result">
+                Your result will appear here.
+            </div>
+
+        </main>
+
+        <footer>
+            <p>EduGenie © 2026</p>
+        </footer>
+
+    </div>
+
+
+<script>
+
+const task = document.getElementById("task");
+const level = document.getElementById("level");
+const inputText = document.getElementById("inputText");
+const inputLabel = document.getElementById("inputLabel");
+const submitBtn = document.getElementById("submitBtn");
+const result = document.getElementById("result");
+const loading = document.getElementById("loading");
+
+
+task.addEventListener("change", updateInput);
+
+
+function updateInput() {
+
+    if (task.value === "qa") {
+
+        inputLabel.textContent = "Enter your question:";
+
+        inputText.placeholder =
+            "Example: What is Artificial Intelligence?";
+
+    }
+
+    else if (task.value === "explain") {
+
+        inputLabel.textContent = "Enter a topic:";
+
+        inputText.placeholder =
+            "Example: Explain Machine Learning";
+
+    }
+
+    else if (task.value === "quiz") {
+
+        inputLabel.textContent = "Enter a quiz topic:";
+
+        inputText.placeholder =
+            "Example: Python Programming";
+
+    }
+
+    else if (task.value === "summarize") {
+
+        inputLabel.textContent = "Enter text to summarize:";
+
+        inputText.placeholder =
+            "Paste your educational text here...";
+
+    }
+
+    else if (task.value === "learn") {
+
+        inputLabel.textContent = "Enter your learning goal:";
+
+        inputText.placeholder =
+            "Example: I want to learn Python";
+
+    }
+}
+
+
+submitBtn.addEventListener("click", async function () {
+
+    const text = inputText.value.trim();
+
+    if (!text) {
+
+        result.innerHTML =
+            "<p>Please enter something first.</p>";
+
+        return;
+    }
+
+
+    loading.classList.remove("hidden");
+
+    result.innerHTML = "";
+
+
+    let endpoint = "";
+    let body = {};
+
+
+    if (task.value === "qa") {
+
+        endpoint = "/qa";
+
+        body = {
+            question: text,
+            level: level.value
+        };
+
+    }
+
+    else if (task.value === "explain") {
+
+        endpoint = "/explain";
+
+        body = {
+            text: text,
+            level: level.value
+        };
+
+    }
+
+    else if (task.value === "quiz") {
+
+        endpoint = "/quiz";
+
+        body = {
+            text: text,
+            level: level.value
+        };
+
+    }
+
+    else if (task.value === "summarize") {
+
+        endpoint = "/summarize";
+
+        body = {
+            text: text,
+            level: level.value
+        };
+
+    }
+
+    else if (task.value === "learn") {
+
+        endpoint = "/learn/recommendations";
+
+        body = {
+            goal: text,
+            level: level.value
+        };
+
+    }
+
+
+    try {
+
+        const response = await fetch(endpoint, {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify(body)
+
+        });
+
+
+        const data = await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail || "Something went wrong."
+            );
+
+        }
+
+
+        displayResult(data);
+
+    }
+
+    catch (error) {
+
+        result.innerHTML =
+            `<p class="error">${error.message}</p>`;
+
+    }
+
+    finally {
+
+        loading.classList.add("hidden");
+
+    }
+
+});
+
+
+function displayResult(data) {
+
+    if (task.value === "qa") {
+
+        result.innerHTML = `
+            <h2>Answer</h2>
+            <p>${formatText(data.answer)}</p>
+        `;
+
+    }
+
+
+    else if (task.value === "explain") {
+
+        result.innerHTML = `
+            <h2>Explanation</h2>
+            <p>${formatText(data.explanation)}</p>
+        `;
+
+    }
+
+
+    else if (task.value === "summarize") {
+
+        result.innerHTML = `
+            <h2>Summary</h2>
+            <p>${formatText(data.summary)}</p>
+        `;
+
+    }
+
+
+    else if (task.value === "quiz") {
+
+        displayQuiz(data.quiz);
+
+    }
+
+
+    else if (task.value === "learn") {
+
+        displayLearningPath(data.learning_path);
+
+    }
+
+}
+
+
+function displayQuiz(quiz) {
+
+    let html = "<h2>Quiz</h2>";
+
+    quiz.questions.forEach((question, index) => {
+
+        html += `
+            <div class="quiz-question">
+
+                <h3>
+                    ${index + 1}. ${question.question}
+                </h3>
+
+                <ul>
+        `;
+
+
+        question.options.forEach(option => {
+
+            html += `
+                <li>${option}</li>
+            `;
+
+        });
+
+
+        html += `
+                </ul>
+
+                <p>
+                    <strong>Correct Answer:</strong>
+                    ${question.correct_answer}
+                </p>
+
+                <p>
+                    ${question.explanation}
+                </p>
+
+            </div>
+        `;
+
+    });
+
+
+    result.innerHTML = html;
+
+}
+
+
+function displayLearningPath(path) {
+
+    let html = `
+        <h2>Learning Path</h2>
+
+        <p>
+            <strong>Goal:</strong>
+            ${path.goal}
+        </p>
+    `;
+
+
+    path.steps.forEach(step => {
+
+        html += `
+            <div class="learning-step">
+
+                <h3>
+                    Step ${step.step}: ${step.topic}
+                </h3>
+
+                <p>
+                    <strong>Difficulty:</strong>
+                    ${step.difficulty}
+                </p>
+
+                <p>
+                    ${step.description}
+                </p>
+
+                <p>
+                    <strong>Resources:</strong>
+                    ${step.resources.join(", ")}
+                </p>
+
+            </div>
+        `;
+
+    });
+
+
+    result.innerHTML = html;
+
+}
+
+
+function formatText(text) {
+
+    return String(text)
+        .replace(/\n/g, "<br>");
+
+}
+
+
+updateInput();
+
+</script>
+
+</body>
+</html>
